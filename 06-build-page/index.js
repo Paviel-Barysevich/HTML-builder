@@ -36,8 +36,6 @@ const clearFolder = (pathToDir) => {
       });
     }
   });
-
-  createBundleWithStyles(copyDerictory);
 };
 
 const replaceMasksInTemplate = () => {
@@ -83,8 +81,6 @@ const replaceMasksInTemplate = () => {
 
 const createBundleWithStyles = (nextFunction) => {
   fs.readdir(pathToStylesDir, options, (error, files) => {
-    nextFunction(pathToAssetsDir, pathToCopyAssets);
-
     if (error) console.log(error.message);
 
     fs.createWriteStream(pathToBundle);
@@ -103,6 +99,9 @@ const createBundleWithStyles = (nextFunction) => {
           }),
         );
         readableStream.on('error', (error) => console.log(error));
+        readableStream.on('end', () =>
+          nextFunction(pathToAssetsDir, pathToCopyAssets),
+        );
       }
     }
   });
@@ -135,8 +134,18 @@ const copyDerictory = (srcDir, destDir) => {
   });
 };
 
-const createProject = clearFolder;
-
-createProject(pathToProject);
-replaceMasksInTemplate();
-copyDerictory(pathToAssetsDir, pathToCopyAssets);
+fs.access(pathToProject, fs.constants.F_OK, (error) => {
+  if (!error) {
+    clearFolder(pathToProject);
+    (() => {
+      createBundleWithStyles(copyDerictory);
+      replaceMasksInTemplate();
+      copyDerictory(pathToAssetsDir, pathToCopyAssets);
+    })();
+  } else {
+    createFolder(pathToProject);
+    createBundleWithStyles(copyDerictory);
+    replaceMasksInTemplate();
+    copyDerictory(pathToAssetsDir, pathToCopyAssets);
+  }
+});
